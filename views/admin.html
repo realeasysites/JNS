@@ -1,0 +1,38 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Leads – Jalbert n' Sons</title><meta name="robots" content="noindex">
+<style>
+:root{--g:#1f2d24;--c:#b5651d;--cream:#fbf7ef}
+*{box-sizing:border-box}body{font-family:system-ui,sans-serif;margin:0;background:#efe9db;color:#222}
+header{background:var(--g);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px;margin:0}header button{background:transparent;color:#fff;border:1px solid #fff6;border-radius:6px;padding:6px 12px;cursor:pointer}
+main{max-width:980px;margin:0 auto;padding:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tabs button{border:1px solid #c9bfa9;background:#fff;padding:7px 14px;border-radius:99px;cursor:pointer;font-size:14px}
+.tabs button.on{background:var(--c);color:#fff;border-color:var(--c)}
+.card{background:var(--cream);border:1px solid #d8cfba;border-radius:10px;padding:16px;margin-bottom:12px}
+.top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.top b{font-size:17px}.meta{color:#666;font-size:13px}
+a{color:var(--c)}select,textarea{font:inherit;padding:8px;border:1px solid #c9bfa9;border-radius:6px}
+textarea{width:100%;margin-top:8px;min-height:50px}.empty{text-align:center;color:#777;padding:40px}
+.msg{white-space:pre-wrap;margin:10px 0}.badge{font-size:12px;padding:2px 8px;border-radius:99px;background:#e6dcc4}
+</style></head><body>
+<header><h1>Jalbert n' Sons – Estimate Requests</h1><form method="post" action="/admin/logout"><button>Log out</button></form></header>
+<main><div class="tabs" id="tabs"></div><div id="list"></div></main>
+<script>
+const S=['new','contacted','quoted','won','lost'];let leads=[],f='all';
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function load(){leads=await (await fetch('/admin/api/leads')).json();render()}
+function render(){
+ document.getElementById('tabs').innerHTML=['all',...S].map(s=>`<button class="${f===s?'on':''}" data-s="${s}">${s[0].toUpperCase()+s.slice(1)} (${s==='all'?leads.length:leads.filter(l=>l.status===s).length})</button>`).join('');
+ const rows=leads.filter(l=>f==='all'||l.status===f);
+ document.getElementById('list').innerHTML=rows.length?rows.map(l=>`<div class="card"><div class="top"><div><b>${esc(l.name)}</b> <span class="badge">${esc(l.service)||'General'}</span><div class="meta">${esc(l.created_at)} UTC · ${esc(l.town)||'Town not given'} · Timeline: ${esc(l.timeline)||'—'}</div></div>
+ <select data-id="${l.id}" class="st">${S.map(s=>`<option ${s===l.status?'selected':''}>${s}</option>`).join('')}</select></div>
+ <div class="meta"><a href="tel:${esc(l.phone)}">${esc(l.phone)}</a>${l.email?` · <a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`:''}</div>
+ <div class="msg">${esc(l.message)}</div><textarea data-id="${l.id}" class="nt" placeholder="Private notes">${esc(l.notes)}</textarea></div>`).join(''):'<div class="empty">No leads here yet.</div>';
+}
+document.addEventListener('click',e=>{if(e.target.dataset.s){f=e.target.dataset.s;render()}});
+document.addEventListener('change',async e=>{if(e.target.classList.contains('st')){await patch(e.target.dataset.id,{status:e.target.value});load()}
+ if(e.target.classList.contains('nt'))patch(e.target.dataset.id,{notes:e.target.value})});
+const patch=(id,b)=>fetch('/admin/api/leads/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+load();
+</script></body></html>
