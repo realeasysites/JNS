@@ -24,4 +24,10 @@ router.patch('/api/leads/:id', (req, res) => {
   if (notes !== undefined) db.prepare('UPDATE leads SET notes=? WHERE id=?').run(String(notes).slice(0, 2000), req.params.id);
   res.json({ ok: true });
 });
+// Delete a request that isn't a real lead (spam, test, wrong number).
+router.delete('/api/leads/:id', (req, res) => {
+  const r = db.prepare('DELETE FROM leads WHERE id=?').run(req.params.id);
+  if (!r.changes) return res.status(404).json({ error: 'not found' });
+  res.json({ ok: true });
+});
 module.exports = router;
